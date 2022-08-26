@@ -43,7 +43,7 @@
     
     ## Notificar via Telegram
     :if ($notifyViaTelegram) do={
-       :global telegramMenssagem "Atualizando firmware da RB *$[/system identity get name]* de $[/system routerboard get current-firmware] para *$[/system routerboard get upgrade-firmware]*";
+       :global TelegramMenssagem "Atualizando firmware da RB *$[/system identity get name]* de $[/system routerboard get current-firmware] para *$[/system routerboard get upgrade-firmware]*";
        :global teleMessageAttachements  "";
        /system script run "Message To Telegram";
    }
@@ -65,44 +65,49 @@
 /system package update
 set channel=$updChannel
 check-for-updates
+
 ## Aguarde conexões lentas
 :delay 15s;
+
 ## Nota importante: "versão instalada" era "versão atual" em sistemas operacionais Roter mais antigos
 :if ([get installed-version] != [get latest-version]) do={
-   ## Notify via Log
-   :log info ("Upgrading RouterOS on router $[/system identity get name] from $[/system package update get installed-version] to $[/system package update get latest-version] (channel:$[/system package update get channel])")
-   ## Notify via Slack
-   :if ($notifyViaSlack) do={
-       :global SlackMessage "Upgrading RouterOS on router *$[/system identity get name]* from $[/system package update get installed-version] to *$[/system package update get latest-version] (channel:$[/system package update get channel])*";
-       :global SlackMessageAttachements  "";
-       /system script run "Message To Slack";
+
+   ## Notificar via Log
+   :log info ("Atualizando RouterOS da RB $[/system identity get name] de $[/system package update get installed-version] para $[/system package update get latest-version] (channel:$[/system package update get channel])")
+
+   ## Notificar via Telegram
+   :if ($notifyViaTelegram) do={
+       :global TelegramMessage "Atualizando RouterOS da RB *$[/system identity get name]* de $[/system package update get installed-version] para *$[/system package update get latest-version] (channel:$[/system package update get channel])*";
+       :global TelegramMessageAttachements  "";
+       /system script run "Message To Telegram";
    }
 
-   ## Notify via E-mail
+   ## Notificar via E-mail
    :if ($notifyViaMail) do={
-       /tool e-mail send to="$email" subject="Upgrading RouterOS on router $[/system identity get name]" body="Upgrading RouterOS on router $[/system identity get name] from $[/system package update get installed-version] to $[/system package update get latest-version] (channel:$[/system package update get channel])"
+       /tool e-mail send to="$email" subject="Atualizando RouterOS da RB $[/system identity get name]" body="Atualizando RouterOS da RB $[/system identity get name] de $[/system package update get installed-version] para $[/system package update get latest-version] (channel:$[/system package update get channel])"
    }
+
    ## Wait for mail to be sent & upgrade
    :delay 15s;
    install
 } else={
     :if ($rebootRequired) do={
         # Firmware was upgraded, but not RouterOS, so we need to reboot to finish firmware upgrade
-        ## Notify via Slack
-        :if ($notifyViaSlack) do={
-            :global SlackMessage "Rebooting...";
-            :global SlackMessageAttachements  "";
-            /system script run "Message To Slack";
+        ## Notify via Telegram
+        :if ($notifyViaTelegram) do={
+            :global TelegramMessage "Rebooting...";
+            :global TelegramMessageAttachements  "";
+            /system script run "Message To Telegram";
         }
         /system reboot
     } else={
         # No firmware nor RouterOS upgrade available, nothing to do, just log info
         :log info ("No firmware nor RouterOS upgrade found.")
-        ## Notify via Slack
-        :if ($notifyViaSlack) do={
-            :global SlackMessage "No firmware nor RouterOS upgrade found.";
-            :global SlackMessageAttachements  "";
-            /system script run "Message To Slack";
+        ## Notify via Telegram
+        :if ($notifyViaTelegram) do={
+            :global TelegramMessage "No firmware nor RouterOS upgrade found.";
+            :global TelegramMessageAttachements  "";
+            /system script run "Message To Telegram";
         }
     }
 }
