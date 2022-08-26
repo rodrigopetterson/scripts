@@ -9,52 +9,65 @@
 ##   updated: 
 ##   testado em: RouterOS 6.47.3 / varios dispositivos HW
 ##
+##
 ##########  Definir variáveis
+##
 ## O canal de atualização pode receber valores anteriores a 6.47.3: bugfix    | current | development | release-candidate
 ## O canal de atualização pode receber valores após 6.47.3:         long-term | stable  | development | testing
+
 :local updChannel       "stable"
+
 ## Notificar via Telegram
+
 :local notifyViaTelegram   true
 :global TelegramIDgroup    "#log"
+
 ## Notificar por e-mail
+
 :local notifyViaMail    true
 :local email            "your@email.com"
+
 ########## Atualizar Firmware
+##
 ## Vamos verificar se há firmware atualizado
+
 :local rebootRequired false
 /system routerboard
 
 :if ( [get current-firmware] != [get upgrade-firmware]) do={
 
-   ## Nova versão de firmware disponível, vamos atualizar
-   ## Notificar via Log
-   :log info ("Upgrading firmware on router $[/system identity get name] from $[/system routerboard get current-firmware] to $[/system routerboard get upgrade-firmware]")
-   ## Notify via Slack
-   :if ($notifyViaSlack) do={
-       :global SlackMessage "Upgrading firmware on router *$[/system identity get name]* from $[/system routerboard get current-firmware] to *$[/system routerboard get upgrade-firmware]*";
-       :global SlackMessageAttachements  "";
-       /system script run "Message To Slack";
+    ## Nova versão de firmware disponível, vamos atualizar
+    ##
+    ## Notificar via Log
+    :log info ("Atualizando firmware da RB $[/system identity get name] de $[/system routerboard get current-firmware] para $[/system routerboard get upgrade-firmware]")
+    
+    ## Notificar via Telegram
+    :if ($notifyViaTelegram) do={
+       :global telegramMenssagem "Atualizando firmware da RB *$[/system identity get name]* de $[/system routerboard get current-firmware] para *$[/system routerboard get upgrade-firmware]*";
+       :global teleMessageAttachements  "";
+       /system script run "Message To Telegram";
    }
-   ## Notify via E-mail
-   :if ($notifyViaMail) do={
-       /tool e-mail send to="$email" subject="Upgrading firmware on router $[/system identity get name]" body="Upgrading firmware on router $[/system identity get name] from $[/system routerboard get current-firmware] to $[/system routerboard get upgrade-firmware]"
+   
+    ## Notificar via E-mail
+    :if ($notifyViaMail) do={
+       /tool e-mail send to="$email" subject="Atualizando firmware da RB $[/system identity get name]" body="Atualizando firmware da RB $[/system identity get name] de $[/system routerboard get current-firmware] para $[/system routerboard get upgrade-firmware]"
    }
-   ## Upgrade (it will no reboot, we'll do it later)
-   upgrade
-   :set rebootRequired true
+   
+    ## Upgrade (não será reinicializado, faremos isso mais tarde)
+    upgrade
+    :set rebootRequired true
 
 }
 
+########## Atualizar RouterOS
 
-########## Upgrade RouterOS
-
-## Check for update
+## Verifique atualizações
 /system package update
 set channel=$updChannel
 check-for-updates
-## Wait on slow connections
+## Aguarde conexões lentas
 :delay 15s;
-## Important note: "installed-version" was "current-version" on older Roter OSes
+## Nota importante: "versão instalada" era "versão atual" em sistemas operacionais Roter mais antigos
 :if ([get installed-version] != [get latest-version]) do={
    ## Notify via Log
    :log info ("Upgrading RouterOS on router $[/system identity get name] from $[/system package update get installed-version] to $[/system package update get latest-version] (channel:$[/system package update get channel])")
